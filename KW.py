@@ -134,14 +134,14 @@ async def process_ksiega(queue, processed):
 
                         try:
                             logger.info(f"Próba otwarcia strony dla {ksiega_id}...")
-                            await page.goto("https://przegladarka-ekw.ms.gov.pl/eukw_prz/KsiegiWieczyste/wyszukiwanieKW", timeout=5000)
+                            await page.goto("https://przegladarka-ekw.ms.gov.pl/eukw_prz/KsiegiWieczyste/wyszukiwanieKW", timeout=15000)
                             logger.info(f"Wypełnianie formularza dla {ksiega_id}...")
                             await page.fill("input#kodWydzialuInput", kod_wydzialu)
                             await page.fill("input#numerKsiegiWieczystej", numer_ksiegi)
                             await page.fill("input#cyfraKontrolna", cyfra_kontrolna)
                             await page.click("button#wyszukaj")
                             logger.info(f"Czekanie na załadowanie strony dla {ksiega_id}...")
-                            await page.wait_for_load_state("networkidle", timeout=5000)
+                            await page.wait_for_load_state("networkidle", timeout=25000)
 
                             if await page.locator("div.form-row p:has-text('Księga o numerze:')").count():
                                 await write_to_file(OUTPUT_FILE, f"{ksiega_id} - NIE ZNALEZIONO\n")
@@ -160,9 +160,9 @@ async def process_ksiega(queue, processed):
 
                             logger.info(f"Przechodzenie do Dział I-O dla {ksiega_id}...")
                             await page.click("button#przyciskWydrukZupelny")
-                            await page.wait_for_load_state("load", timeout=10000)
+                            await page.wait_for_load_state("load", timeout=20000)
                             await page.click("text=Dział I-O")
-                            await page.wait_for_load_state("load", timeout=10000)
+                            await page.wait_for_load_state("load", timeout=20000)
 
                             logger.info(f"Pobieranie numerów działek dla {ksiega_id}...")
                             parcel_links = await page.query_selector_all('a[href*="mapy.geoportal.gov.pl/imap/?identifyParcel="]')
