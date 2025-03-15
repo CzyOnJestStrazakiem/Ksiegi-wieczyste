@@ -1,0 +1,38 @@
+name: Run Python Script
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Codziennie o 00:00 UTC
+  workflow_dispatch: # Możliwość ręcznego uruchomienia
+
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install playwright
+          playwright install --with-deps chromium
+
+      - name: Run script
+        run: |
+          python twoj_skrypt.py
+
+      - name: Commit and push results
+        run: |
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "actions@github.com"
+          git add output.txt errors.log proxy_errors.log
+          git commit -m "Update results from script run" || echo "No changes to commit"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
