@@ -14,7 +14,7 @@
         ],
         "locale": ["pl-PL", "en-US"]
     },
-    "proxy_list": "proxies.txt",
+    "proxy_list": "proxy.txt",
     "browser_args": ["--no-sandbox", "--disable-setuid-sandbox"],
     "logging_enabled": true,
     "logging_proxy_enabled": true,
