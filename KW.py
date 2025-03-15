@@ -8,7 +8,6 @@ from pathlib import Path
 import logging
 from playwright.async_api import async_playwright
 
-# Konfiguracja logowania
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
@@ -16,18 +15,15 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Parsowanie argumentów linii poleceń
 parser = argparse.ArgumentParser(description="Pobieranie danych przez proxy")
 parser.add_argument("-workers", type=int, help="Liczba workerów")
 parser.add_argument("-in", dest="ksiegi_file", type=str, help="Plik ksiąg")
 parser.add_argument("--ip-verification", choices=["enabled", "disabled"], default=None)
 args = parser.parse_args()
 
-# Wczytanie ustawień z pliku
 with open("settings.json", "r", encoding="utf-8") as f:
     settings = json.load(f)
 
-# Nadpisanie ustawień, jeśli przekazano argumenty
 if args.ip_verification is not None:
     settings["ip_verification_enabled"] = (args.ip_verification == "enabled")
 if args.workers:
@@ -39,7 +35,6 @@ if args.ksiegi_file:
     settings["error_log"] = f"{prefix}_errors.log"
     settings["proxy_error_log"] = f"{prefix}_proxy_errors.log"
 
-# Przypisanie zmiennych
 IP_VERIFICATION_ENABLED = settings.get("ip_verification_enabled", True)
 OUTPUT_FILE = settings["plik_wyjsciowy"]
 ERROR_LOG = settings["error_log"]
@@ -59,7 +54,6 @@ KSIEGI_FILE = settings.get("ksiegi_file", "dupa.txt")
 RETRY_COUNT = settings["retry_count"]
 RESTART_DELAY = settings["restart_delay"]
 
-# Globalny lock do asynchronicznych zapisów
 write_lock = asyncio.Lock()
 
 def write_data(filename, data):
@@ -71,7 +65,6 @@ async def write_to_file(filename, data):
         loop = asyncio.get_running_loop()
         await loop.run_in_executor(None, write_data, filename, data)
 
-# Wczytanie listy proxy
 def load_proxies():
     if PROXY_ENABLED and os.path.exists(PROXY_LIST_FILE):
         with open(PROXY_LIST_FILE, "r") as f:
@@ -80,12 +73,10 @@ def load_proxies():
 
 PROXIES = load_proxies()
 
-# Wczytanie listy ksiąg do przetworzenia
 def load_ksiegi():
     with open(KSIEGI_FILE, "r", encoding="utf-8") as f:
         return [line.strip().split() for line in f.readlines()]
 
-# Wczytanie już przetworzonych ksiąg
 def load_processed():
     if not os.path.exists(OUTPUT_FILE):
         return set()
@@ -107,6 +98,7 @@ def clean_text(text):
 
 async def process_ksiega(queue, processed):
     async with async_playwright() as p:
+        logger.info("Uruchamianie przeglądarki...")
         browser = await p[BROWSER_TYPE].launch(headless=HEADLESS, args=BROWSER_ARGS)
         try:
             while not queue.empty():
@@ -139,12 +131,16 @@ async def process_ksiega(queue, processed):
                         else:
                             if LOGGING_PROXY_ENABLED:
                                 logger.info(f"🌐 Przetwarzanie: {ksiega_id} | Proxy: {proxy_server} | Weryfikacja IP wyłączona")
+
                         try:
+                            logger.info(f"Próba otwarcia strony dla {ksiega_id}...")
                             await page.goto("https://przegladarka-ekw.ms.gov.pl/eukw_prz/KsiegiWieczyste/wyszukiwanieKW", timeout=5000)
+                            logger.info(f"Wypełnianie formularza dla {ksiega_id}...")
                             await page.fill("input#kodWydzialuInput", kod_wydzialu)
                             await page.fill("input#numerKsiegiWieczystej", numer_ksiegi)
                             await page.fill("input#cyfraKontrolna", cyfra_kontrolna)
                             await page.click("button#wyszukaj")
+                            logger.info(f"Czekanie na załadowanie strony dla {ksiega_id}...")
                             await page.wait_for_load_state("networkidle", timeout=5000)
 
                             if await page.locator("div.form-row p:has-text('Księga o numerze:')").count():
@@ -153,7 +149,7 @@ async def process_ksiega(queue, processed):
                                     logger.info(f"❌ Nie znaleziono księgi: {ksiega_id}")
                                 break
 
-                            # Pobranie danych z sekcji strony
+                            logger.info(f"Pobieranie danych dla {ksiega_id}...")
                             wlas = await page.query_selector_all('div.form-row:has(label:has-text("Właściciel")) p')
                             polozenie = await page.query_selector_all('div.form-row:has(label:has-text("Położenie")) p')
                             zapisanie = await page.query_selector_all('div.form-row:has(label:has-text("Data zapisania księgi wieczystej"))')
@@ -162,19 +158,18 @@ async def process_ksiega(queue, processed):
                             polozenie_data = "; ".join([clean_text(await element.text_content()) for element in polozenie]) if polozenie else "Brak danych"
                             zapisanie_data = "; ".join([clean_text(await element.text_content()) for element in zapisanie]) if zapisanie else "Brak danych"
 
-                            # Przejście do Dział I-O i pobranie numerów działek
+                            logger.info(f"Przechodzenie do Dział I-O dla {ksiega_id}...")
                             await page.click("button#przyciskWydrukZupelny")
                             await page.wait_for_load_state("load", timeout=10000)
                             await page.click("text=Dział I-O")
                             await page.wait_for_load_state("load", timeout=10000)
 
-                            # Znajdź wszystkie linki do Geoportalu w sekcji Dział I-O
+                            logger.info(f"Pobieranie numerów działek dla {ksiega_id}...")
                             parcel_links = await page.query_selector_all('a[href*="mapy.geoportal.gov.pl/imap/?identifyParcel="]')
                             parcel_numbers = [await link.get_attribute("href") for link in parcel_links]
                             parcel_ids = [link.split("identifyParcel=")[-1] for link in parcel_numbers] if parcel_numbers else ["Brak numerów działek"]
                             parcel_ids_str = "; ".join(parcel_ids)
 
-                            # Zapisanie wszystkich danych do pliku tekstowego
                             if any(data != "Brak danych" for data in [polozenie_data, wlas_data, zapisanie_data, parcel_ids_str]):
                                 output = (
                                     f"{ksiega_id} - księga znaleziona, "
@@ -190,16 +185,19 @@ async def process_ksiega(queue, processed):
                                 if LOGGING_ENABLED:
                                     logger.warning(f"⚠️ Pominięto zapis dla księgi {ksiega_id} – brak danych.")
 
-                            break  # Wyjście z pętli retry przy powodzeniu
+                            break
                         except Exception as e:
+                            logger.error(f"Błąd dla {ksiega_id}: {str(e)}")
                             await write_to_file(ERROR_LOG, f"{ksiega_id} - ERROR: {str(e)}\n")
                         finally:
                             await page.close()
                             await context.close()
                 finally:
                     queue.task_done()
+                    logger.info(f"Zakończono przetwarzanie zadania dla {ksiega_id}")
         finally:
             await browser.close()
+            logger.info("Zamknięto przeglądarkę")
 
 async def main():
     while True:
@@ -216,10 +214,12 @@ async def main():
             logger.info("✅ Wszystkie księgi przetworzone! Restart za 5 sekund...")
             await asyncio.sleep(RESTART_DELAY)
         else:
+            logger.info(f"Rozpoczynanie przetwarzania {queue.qsize()} ksiąg...")
             tasks = [asyncio.create_task(process_ksiega(queue, processed)) for _ in range(WORKERS)]
             await queue.join()
             for task in tasks:
                 task.cancel()
+            logger.info("Zakończono wszystkie zadania w tej iteracji")
 
 if __name__ == "__main__":
     asyncio.run(main())
