@@ -16,9 +16,9 @@
     },
     "proxy_list": "proxies.txt",
     "browser_args": ["--no-sandbox", "--disable-setuid-sandbox"],
-    "logging_enabled": false,
-    "logging_proxy_enabled": false,
-    "proxy_errorlogging_enabled": false,
+    "logging_enabled": true,
+    "logging_proxy_enabled": true,
+    "proxy_errorlogging_enabled": true,
     "ksiegi_file": "ksiegi.txt",
     "retry_count": 3,
     "restart_delay": 5
