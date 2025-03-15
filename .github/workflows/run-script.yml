@@ -27,7 +27,7 @@ jobs:
         run: ls -la
 
       - name: Run script
-        run: python KW.py
+        run: python KW.py  # Zakładam, że Twój skrypt nazywa się KW.py, bo tak jest w logach
 
       - name: List files after running script
         run: ls -la
@@ -36,7 +36,7 @@ jobs:
         run: |
           git config --global user.name "GitHub Actions Bot"
           git config --global user.email "actions@github.com"
-          git add output.txt errors.log proxy_errors.log || echo "No files to add"
+          git add output.txt errors.log proxy_errors.log || true  # Ignoruje brakujące pliki
           git commit -m "Update results from script run" || echo "Nothing to commit"
           git push
         env:
