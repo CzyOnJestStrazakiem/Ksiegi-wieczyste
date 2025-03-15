@@ -1,0 +1,25 @@
+{
+    "ip_verification_enabled": false,
+    "plik_wyjsciowy": "output.txt",
+    "error_log": "errors.log",
+    "proxy_error_log": "proxy_errors.log",
+    "workers": 2,
+    "headless": true,
+    "browser": "chromium",
+    "browser_options": {
+        "proxy": false,
+        "user_agent_list": [
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Safari/605.1.15"
+        ],
+        "locale": ["pl-PL", "en-US"]
+    },
+    "proxy_list": "proxies.txt",
+    "browser_args": ["--no-sandbox", "--disable-setuid-sandbox"],
+    "logging_enabled": false,
+    "logging_proxy_enabled": false,
+    "proxy_errorlogging_enabled": false,
+    "ksiegi_file": "ksiegi.txt",
+    "retry_count": 3,
+    "restart_delay": 5
+}
