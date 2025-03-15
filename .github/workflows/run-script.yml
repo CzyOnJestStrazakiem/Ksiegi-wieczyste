@@ -25,7 +25,7 @@ jobs:
 
       - name: Run script
         run: |
-          python twoj_skrypt.py
+          python KW.py
 
       - name: Commit and push results
         run: |
