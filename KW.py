@@ -134,14 +134,14 @@ async def process_ksiega(queue, processed):
 
                         try:
                             logger.info(f"Próba otwarcia strony dla {ksiega_id}...")
-                            await page.goto("https://przegladarka-ekw.ms.gov.pl/eukw_prz/KsiegiWieczyste/wyszukiwanieKW", timeout=15000)
+                            await page.goto("https://przegladarka-ekw.ms.gov.pl/eukw_prz/KsiegiWieczyste/wyszukiwanieKW", timeout=30000)
                             logger.info(f"Wypełnianie formularza dla {ksiega_id}...")
                             await page.fill("input#kodWydzialuInput", kod_wydzialu)
                             await page.fill("input#numerKsiegiWieczystej", numer_ksiegi)
                             await page.fill("input#cyfraKontrolna", cyfra_kontrolna)
                             await page.click("button#wyszukaj")
                             logger.info(f"Czekanie na załadowanie strony dla {ksiega_id}...")
-                            await page.wait_for_load_state("networkidle", timeout=25000)
+                            await page.wait_for_load_state("networkidle", timeout=30000)
 
                             if await page.locator("div.form-row p:has-text('Księga o numerze:')").count():
                                 await write_to_file(OUTPUT_FILE, f"{ksiega_id} - NIE ZNALEZIONO\n")
@@ -160,9 +160,9 @@ async def process_ksiega(queue, processed):
 
                             logger.info(f"Przechodzenie do Dział I-O dla {ksiega_id}...")
                             await page.click("button#przyciskWydrukZupelny")
-                            await page.wait_for_load_state("load", timeout=20000)
+                            await page.wait_for_load_state("load", timeout=30000)
                             await page.click("text=Dział I-O")
-                            await page.wait_for_load_state("load", timeout=20000)
+                            await page.wait_for_load_state("load", timeout=30000)
 
                             logger.info(f"Pobieranie numerów działek dla {ksiega_id}...")
                             parcel_links = await page.query_selector_all('a[href*="mapy.geoportal.gov.pl/imap/?identifyParcel="]')
@@ -181,6 +181,7 @@ async def process_ksiega(queue, processed):
                                 await write_to_file(OUTPUT_FILE, output + "\n")
                                 if LOGGING_ENABLED:
                                     logger.info(f"✅ Zapisano dane dla księgi: {ksiega_id}")
+                                    logger.info(f"Sprawdzanie pliku {OUTPUT_FILE}: {os.path.exists(OUTPUT_FILE)}")
                             else:
                                 if LOGGING_ENABLED:
                                     logger.warning(f"⚠️ Pominięto zapis dla księgi {ksiega_id} – brak danych.")
@@ -188,6 +189,8 @@ async def process_ksiega(queue, processed):
                             break
                         except Exception as e:
                             logger.error(f"Błąd dla {ksiega_id}: {str(e)}")
+                            html_content = await page.content()
+                            logger.info(f"Zawartość strony przy błędzie dla {ksiega_id}: {html_content[:500]}...")
                             await write_to_file(ERROR_LOG, f"{ksiega_id} - ERROR: {str(e)}\n")
                         finally:
                             await page.close()
@@ -200,26 +203,24 @@ async def process_ksiega(queue, processed):
             logger.info("Zamknięto przeglądarkę")
 
 async def main():
-    while True:
-        ksiegi = load_ksiegi()
-        processed = load_processed()
-        queue = asyncio.Queue()
+    ksiegi = load_ksiegi()
+    processed = load_processed()
+    queue = asyncio.Queue()
 
-        for ksiega in ksiegi:
-            ksiega_id = f"{ksiega[0]} {ksiega[1]}/{ksiega[2]}"
-            if ksiega_id not in processed:
-                await queue.put(ksiega)
+    for ksiega in ksiegi:
+        ksiega_id = f"{ksiega[0]} {ksiega[1]}/{ksiega[2]}"
+        if ksiega_id not in processed:
+            await queue.put(ksiega)
 
-        if queue.empty():
-            logger.info("✅ Wszystkie księgi przetworzone! Restart za 5 sekund...")
-            await asyncio.sleep(RESTART_DELAY)
-        else:
-            logger.info(f"Rozpoczynanie przetwarzania {queue.qsize()} ksiąg...")
-            tasks = [asyncio.create_task(process_ksiega(queue, processed)) for _ in range(WORKERS)]
-            await queue.join()
-            for task in tasks:
-                task.cancel()
-            logger.info("Zakończono wszystkie zadania w tej iteracji")
+    if queue.empty():
+        logger.info("✅ Wszystkie księgi przetworzone!")
+    else:
+        logger.info(f"Rozpoczynanie przetwarzania {queue.qsize()} ksiąg...")
+        tasks = [asyncio.create_task(process_ksiega(queue, processed)) for _ in range(WORKERS)]
+        await queue.join()
+        for task in tasks:
+            task.cancel()
+        logger.info("Zakończono wszystkie zadania")
 
 if __name__ == "__main__":
     asyncio.run(main())
