@@ -23,16 +23,21 @@ jobs:
           pip install playwright
           playwright install --with-deps chromium
 
+      - name: List files before running script
+        run: ls -la
+
       - name: Run script
-        run: |
-          python KW.py
+        run: python KW.py
+
+      - name: List files after running script
+        run: ls -la
 
       - name: Commit and push results
         run: |
           git config --global user.name "GitHub Actions Bot"
           git config --global user.email "actions@github.com"
-          git add output.txt errors.log proxy_errors.log
-          git commit -m "Update results from script run" || echo "No changes to commit"
+          git add output.txt errors.log proxy_errors.log || echo "No files to add"
+          git commit -m "Update results from script run" || echo "Nothing to commit"
           git push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
