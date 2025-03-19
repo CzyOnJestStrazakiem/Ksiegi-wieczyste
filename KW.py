@@ -46,7 +46,7 @@ PROXY_ENABLED = settings["browser_options"].get("proxy", False)
 USER_AGENTS = settings["browser_options"].get("user_agent_list", [])
 LOCALES = settings["browser_options"].get("locale", [])
 PROXY_LIST_FILE = settings.get("proxy_list", "")
-PROXY_PROTOCOL = settings["browser_options"].get("proxy_protocol", "socks5")  # Domyślnie http, można ustawić socks5
+PROXY_PROTOCOL = settings["browser_options"].get("proxy_protocol", "http")
 BROWSER_ARGS = settings.get("browser_args", [])
 LOGGING_ENABLED = settings.get("logging_enabled", True)
 LOGGING_PROXY_ENABLED = settings.get("logging_proxy_enabled", True)
@@ -75,7 +75,6 @@ def load_proxies():
                 if line:
                     try:
                         ip, port, username, password = line.split(":")
-                        # Używamy protokołu z settings.json (np. "http" lub "socks5")
                         proxies.append({
                             "server": f"{PROXY_PROTOCOL}://{ip}:{port}",
                             "username": username,
@@ -116,13 +115,22 @@ async def process_ksiega(queue, processed):
         logger.info("Uruchamianie przeglądarki...")
         browser = await p[BROWSER_TYPE].launch(headless=HEADLESS, args=BROWSER_ARGS)
         try:
-            while not queue.empty():
+            while True:  # Zmieniono na while True, aby nie polegać tylko na queue.empty()
                 try:
+                    # Sprawdzamy, czy kolejka jest pusta przed pobraniem
+                    if queue.empty():
+                        logger.info("Kolejka pusta, kończenie pracy workera...")
+                        break
+
+                    logger.info(f"Pobieranie zadania z kolejki... Rozmiar kolejki: {queue.qsize()}")
                     kod_wydzialu, numer_ksiegi, cyfra_kontrolna = await queue.get()
                     ksiega_id = f"{kod_wydzialu} {numer_ksiegi}/{cyfra_kontrolna}"
+                    logger.info(f"Pobrano zadanie: {ksiega_id}")
+
                     if ksiega_id in processed:
                         if LOGGING_ENABLED:
                             logger.info(f"⏭️ Pominięto: {ksiega_id} (już przetworzona)")
+                        queue.task_done()
                         continue
 
                     for attempt in range(RETRY_COUNT):
@@ -144,11 +152,11 @@ async def process_ksiega(queue, processed):
                             except asyncio.TimeoutError:
                                 logger.warning(f"Timeout podczas weryfikacji IP dla proxy {proxy['server'] if proxy else 'bez proxy'}")
                                 await context.close()
-                                continue  # Próba z nowym proxy
+                                continue
                             except Exception as e:
                                 logger.warning(f"Błąd podczas pobierania IP: {str(e)}")
                                 await context.close()
-                                continue  # Próba z nowym proxy
+                                continue
                         else:
                             if LOGGING_PROXY_ENABLED and proxy:
                                 logger.info(f"🌐 Przetwarzanie: {ksiega_id} | Proxy: {proxy['server']} | Weryfikacja IP wyłączona")
@@ -157,7 +165,7 @@ async def process_ksiega(queue, processed):
 
                         try:
                             logger.info(f"Próba otwarcia strony dla {ksiega_id}...")
-                            await page.goto("https://przegladarka-ekw.ms.gov.pl/eukw_prz/KsiegiWieczyste/wyszukiwanieKW", timeout=60000)  # Zwiększony timeout
+                            await page.goto("https://przegladarka-ekw.ms.gov.pl/eukw_prz/KsiegiWieczyste/wyszukiwanieKW", timeout=60000)
                             logger.info(f"Wypełnianie formularza dla {ksiega_id}...")
                             await page.fill("input#kodWydzialuInput", kod_wydzialu)
                             await page.fill("input#numerKsiegiWieczystej", numer_ksiegi)
@@ -219,8 +227,13 @@ async def process_ksiega(queue, processed):
                             await context.close()
                             if "ERR_TUNNEL_CONNECTION_FAILED" in str(e) or "net::" in str(e):
                                 logger.info(f"Próba {attempt + 1} nieudana, zmiana proxy...")
-                                continue  # Próba z nowym proxy
+                                continue
                             break
+                        finally:
+                            await page.close()
+                            await context.close()
+                except Exception as e:
+                    logger.error(f"Nieoczekiwany błąd w pobieraniu zadania: {str(e)}")
                 finally:
                     queue.task_done()
                     logger.info(f"Zakończono przetwarzanie zadania dla {ksiega_id}")
@@ -233,20 +246,23 @@ async def main():
     processed = load_processed()
     queue = asyncio.Queue()
 
+    logger.info(f"Wczytano {len(ksiegi)} ksiąg do przetworzenia")
     for ksiega in ksiegi:
         ksiega_id = f"{ksiega[0]} {ksiega[1]}/{ksiega[2]}"
         if ksiega_id not in processed:
             await queue.put(ksiega)
+            logger.info(f"Dodano do kolejki: {ksiega_id}")
 
     if queue.empty():
         logger.info("✅ Wszystkie księgi przetworzone!")
-    else:
-        logger.info(f"Rozpoczynanie przetwarzania {queue.qsize()} ksiąg...")
-        tasks = [asyncio.create_task(process_ksiega(queue, processed)) for _ in range(WORKERS)]
-        await queue.join()
-        for task in tasks:
-            task.cancel()
-        logger.info("Zakończono wszystkie zadania")
+        return
+
+    logger.info(f"Rozpoczynanie przetwarzania {queue.qsize()} ksiąg...")
+    tasks = [asyncio.create_task(process_ksiega(queue, processed)) for _ in range(WORKERS)]
+    await queue.join()
+    for task in tasks:
+        task.cancel()
+    logger.info("Zakończono wszystkie zadania")
 
 if __name__ == "__main__":
     asyncio.run(main())
