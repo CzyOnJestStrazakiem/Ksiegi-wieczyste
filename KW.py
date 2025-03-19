@@ -46,6 +46,7 @@ PROXY_ENABLED = settings["browser_options"].get("proxy", False)
 USER_AGENTS = settings["browser_options"].get("user_agent_list", [])
 LOCALES = settings["browser_options"].get("locale", [])
 PROXY_LIST_FILE = settings.get("proxy_list", "")
+PROXY_PROTOCOL = settings["browser_options"].get("proxy_protocol", "socks5")  # Domyślnie http, można ustawić socks5
 BROWSER_ARGS = settings.get("browser_args", [])
 LOGGING_ENABLED = settings.get("logging_enabled", True)
 LOGGING_PROXY_ENABLED = settings.get("logging_proxy_enabled", True)
@@ -74,8 +75,9 @@ def load_proxies():
                 if line:
                     try:
                         ip, port, username, password = line.split(":")
+                        # Używamy protokołu z settings.json (np. "http" lub "socks5")
                         proxies.append({
-                            "server": f"http://{ip}:{port}",
+                            "server": f"{PROXY_PROTOCOL}://{ip}:{port}",
                             "username": username,
                             "password": password
                         })
@@ -129,7 +131,7 @@ async def process_ksiega(queue, processed):
                             user_agent=random.choice(USER_AGENTS) if USER_AGENTS else None,
                             locale=random.choice(LOCALES) if LOCALES else None,
                             ignore_https_errors=False,
-                            proxy=proxy  # Przekazujemy pełny słownik proxy
+                            proxy=proxy
                         )
                         page = await context.new_page()
                         if IP_VERIFICATION_ENABLED:
@@ -141,8 +143,12 @@ async def process_ksiega(queue, processed):
                                     logger.info(f"🌐 Przetwarzanie: {ksiega_id} | Bez proxy | IP: {public_ip}")
                             except asyncio.TimeoutError:
                                 logger.warning(f"Timeout podczas weryfikacji IP dla proxy {proxy['server'] if proxy else 'bez proxy'}")
+                                await context.close()
+                                continue  # Próba z nowym proxy
                             except Exception as e:
                                 logger.warning(f"Błąd podczas pobierania IP: {str(e)}")
+                                await context.close()
+                                continue  # Próba z nowym proxy
                         else:
                             if LOGGING_PROXY_ENABLED and proxy:
                                 logger.info(f"🌐 Przetwarzanie: {ksiega_id} | Proxy: {proxy['server']} | Weryfikacja IP wyłączona")
@@ -151,7 +157,7 @@ async def process_ksiega(queue, processed):
 
                         try:
                             logger.info(f"Próba otwarcia strony dla {ksiega_id}...")
-                            await page.goto("https://przegladarka-ekw.ms.gov.pl/eukw_prz/KsiegiWieczyste/wyszukiwanieKW", timeout=30000)
+                            await page.goto("https://przegladarka-ekw.ms.gov.pl/eukw_prz/KsiegiWieczyste/wyszukiwanieKW", timeout=60000)  # Zwiększony timeout
                             logger.info(f"Wypełnianie formularza dla {ksiega_id}...")
                             await page.fill("input#kodWydzialuInput", kod_wydzialu)
                             await page.fill("input#numerKsiegiWieczystej", numer_ksiegi)
@@ -202,7 +208,6 @@ async def process_ksiega(queue, processed):
                             else:
                                 if LOGGING_ENABLED:
                                     logger.warning(f"⚠️ Pominięto zapis dla księgi {ksiega_id} – brak danych.")
-
                             break
                         except Exception as e:
                             logger.error(f"Błąd dla {ksiega_id}: {str(e)}")
@@ -211,9 +216,11 @@ async def process_ksiega(queue, processed):
                             await write_to_file(ERROR_LOG, f"{ksiega_id} - ERROR: {str(e)}\n")
                             if PROXY_ERRORLOGGING_ENABLED and proxy:
                                 await write_to_file(PROXY_ERROR_LOG, f"{ksiega_id} - Proxy: {proxy['server']} - ERROR: {str(e)}\n")
-                        finally:
-                            await page.close()
                             await context.close()
+                            if "ERR_TUNNEL_CONNECTION_FAILED" in str(e) or "net::" in str(e):
+                                logger.info(f"Próba {attempt + 1} nieudana, zmiana proxy...")
+                                continue  # Próba z nowym proxy
+                            break
                 finally:
                     queue.task_done()
                     logger.info(f"Zakończono przetwarzanie zadania dla {ksiega_id}")
