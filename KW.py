@@ -67,8 +67,21 @@ async def write_to_file(filename, data):
 
 def load_proxies():
     if PROXY_ENABLED and os.path.exists(PROXY_LIST_FILE):
+        proxies = []
         with open(PROXY_LIST_FILE, "r") as f:
-            return [line.strip() for line in f if line.strip()]
+            for line in f:
+                line = line.strip()
+                if line:
+                    try:
+                        ip, port, username, password = line.split(":")
+                        proxies.append({
+                            "server": f"http://{ip}:{port}",
+                            "username": username,
+                            "password": password
+                        })
+                    except ValueError:
+                        logger.error(f"Nieprawidłowy format proxy: {line}")
+        return proxies
     return []
 
 PROXIES = load_proxies()
@@ -111,26 +124,30 @@ async def process_ksiega(queue, processed):
                         continue
 
                     for attempt in range(RETRY_COUNT):
-                        proxy_server = random.choice(PROXIES) if PROXIES else None
+                        proxy = random.choice(PROXIES) if PROXIES else None
                         context = await browser.new_context(
                             user_agent=random.choice(USER_AGENTS) if USER_AGENTS else None,
                             locale=random.choice(LOCALES) if LOCALES else None,
                             ignore_https_errors=False,
-                            proxy={"server": proxy_server} if proxy_server else None
+                            proxy=proxy  # Przekazujemy pełny słownik proxy
                         )
                         page = await context.new_page()
                         if IP_VERIFICATION_ENABLED:
                             try:
                                 public_ip = await asyncio.wait_for(get_public_ip(page), timeout=5)
-                                if LOGGING_PROXY_ENABLED:
-                                    logger.info(f"🌐 Przetwarzanie: {ksiega_id} | Proxy: {proxy_server} | IP: {public_ip}")
+                                if LOGGING_PROXY_ENABLED and proxy:
+                                    logger.info(f"🌐 Przetwarzanie: {ksiega_id} | Proxy: {proxy['server']} | IP: {public_ip}")
+                                elif LOGGING_PROXY_ENABLED:
+                                    logger.info(f"🌐 Przetwarzanie: {ksiega_id} | Bez proxy | IP: {public_ip}")
                             except asyncio.TimeoutError:
-                                logger.warning(f"Timeout podczas weryfikacji IP dla proxy {proxy_server}")
+                                logger.warning(f"Timeout podczas weryfikacji IP dla proxy {proxy['server'] if proxy else 'bez proxy'}")
                             except Exception as e:
-                                logger.warning(f"Błąd podczas pobierania IP dla proxy {proxy_server}: {str(e)}")
+                                logger.warning(f"Błąd podczas pobierania IP: {str(e)}")
                         else:
-                            if LOGGING_PROXY_ENABLED:
-                                logger.info(f"🌐 Przetwarzanie: {ksiega_id} | Proxy: {proxy_server} | Weryfikacja IP wyłączona")
+                            if LOGGING_PROXY_ENABLED and proxy:
+                                logger.info(f"🌐 Przetwarzanie: {ksiega_id} | Proxy: {proxy['server']} | Weryfikacja IP wyłączona")
+                            elif LOGGING_PROXY_ENABLED:
+                                logger.info(f"🌐 Przetwarzanie: {ksiega_id} | Bez proxy | Weryfikacja IP wyłączona")
 
                         try:
                             logger.info(f"Próba otwarcia strony dla {ksiega_id}...")
@@ -192,6 +209,8 @@ async def process_ksiega(queue, processed):
                             html_content = await page.content()
                             logger.info(f"Zawartość strony przy błędzie dla {ksiega_id}: {html_content[:500]}...")
                             await write_to_file(ERROR_LOG, f"{ksiega_id} - ERROR: {str(e)}\n")
+                            if PROXY_ERRORLOGGING_ENABLED and proxy:
+                                await write_to_file(PROXY_ERROR_LOG, f"{ksiega_id} - Proxy: {proxy['server']} - ERROR: {str(e)}\n")
                         finally:
                             await page.close()
                             await context.close()
