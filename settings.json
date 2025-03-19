@@ -1,5 +1,5 @@
 {
-    "ip_verification_enabled": false,
+    "ip_verification_enabled": true,
     "plik_wyjsciowy": "output.txt",
     "error_log": "errors.log",
     "proxy_error_log": "proxy_errors.log",
