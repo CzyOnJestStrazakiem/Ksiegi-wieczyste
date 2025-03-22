@@ -165,3 +165,9 @@ KS1S 00000012/9 - Proxy: http://161.123.152.115:6360 - ERROR: Timeout 30000ms ex
 "domcontentloaded" event fired
 "load" event fired
 ============================================================
+KS1S 00000001/9 - Proxy: http://86.38.234.176:6630 - ERROR: Page.fill: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("input#kodWydzialuInput")
+  -     - waiting for" https://przegladarka-ekw.ms.gov.pl/eukw_prz/KsiegiWieczyste/wyszukiwanieKW" navigation to finish...
+  -     - navigated to "https://przegladarka-ekw.ms.gov.pl/eukw_prz/KsiegiWieczyste/wyszukiwanieKW"
+
