@@ -885,3 +885,19 @@ KS1S 00000009/5 - Proxy: http://161.123.152.115:6360 - ERROR: Timeout 30000ms ex
 "domcontentloaded" event fired
 "load" event fired
 ============================================================
+KS1S 00000006/4 - Proxy: http://198.105.101.92:5721 - ERROR: Page.goto: Timeout 60000ms exceeded.
+Call log:
+  - navigating to "https://przegladarka-ekw.ms.gov.pl/eukw_prz/KsiegiWieczyste/wyszukiwanieKW", waiting until "load"
+
+KS1S 00000010/2 - Proxy: http://166.88.58.10:5735 - ERROR: Page.goto: Timeout 60000ms exceeded.
+Call log:
+  - navigating to "https://przegladarka-ekw.ms.gov.pl/eukw_prz/KsiegiWieczyste/wyszukiwanieKW", waiting until "load"
+
+KS1S 00000011/2 - Proxy: http://166.88.58.10:5735 - ERROR: Page.goto: Timeout 60000ms exceeded.
+Call log:
+  - navigating to "https://przegladarka-ekw.ms.gov.pl/eukw_prz/KsiegiWieczyste/wyszukiwanieKW", waiting until "load"
+
+KS1S 00000012/9 - Proxy: http://38.154.227.167:5868 - ERROR: Page.goto: Timeout 60000ms exceeded.
+Call log:
+  - navigating to "https://przegladarka-ekw.ms.gov.pl/eukw_prz/KsiegiWieczyste/wyszukiwanieKW", waiting until "load"
+
