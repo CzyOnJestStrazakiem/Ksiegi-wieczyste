@@ -2035,3 +2035,61 @@ KS1S 00000012/9 - ERROR: Timeout 30000ms exceeded.
 "domcontentloaded" event fired
 "load" event fired
 ============================================================
+KS1S 00000001/9 - ERROR: Timeout 30000ms exceeded.
+=========================== logs ===========================
+"domcontentloaded" event fired
+"load" event fired
+============================================================
+KS1S 00000002/6 - ERROR: Page.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("button#przyciskWydrukZupelny")
+
+KS1S 00000003/3 - ERROR: Timeout 30000ms exceeded.
+=========================== logs ===========================
+"domcontentloaded" event fired
+"load" event fired
+============================================================
+KS1S 00000004/0 - ERROR: Timeout 30000ms exceeded.
+=========================== logs ===========================
+"domcontentloaded" event fired
+"load" event fired
+============================================================
+KS1S 00000005/7 - ERROR: Timeout 30000ms exceeded.
+=========================== logs ===========================
+"domcontentloaded" event fired
+"load" event fired
+============================================================
+KS1S 00000006/4 - ERROR: Timeout 30000ms exceeded.
+=========================== logs ===========================
+"domcontentloaded" event fired
+"load" event fired
+============================================================
+KS1S 00000007/1 - ERROR: Page.goto: Timeout 60000ms exceeded.
+Call log:
+  - navigating to "https://przegladarka-ekw.ms.gov.pl/eukw_prz/KsiegiWieczyste/wyszukiwanieKW", waiting until "load"
+
+KS1S 00000008/8 - ERROR: Timeout 30000ms exceeded.
+=========================== logs ===========================
+"domcontentloaded" event fired
+"load" event fired
+============================================================
+KS1S 00000009/5 - ERROR: Timeout 30000ms exceeded.
+=========================== logs ===========================
+"domcontentloaded" event fired
+"load" event fired
+============================================================
+KS1S 00000010/2 - ERROR: Timeout 30000ms exceeded.
+=========================== logs ===========================
+"domcontentloaded" event fired
+"load" event fired
+============================================================
+KS1S 00000011/2 - ERROR: Timeout 30000ms exceeded.
+=========================== logs ===========================
+"domcontentloaded" event fired
+"load" event fired
+============================================================
+KS1S 00000012/9 - ERROR: Timeout 30000ms exceeded.
+=========================== logs ===========================
+"domcontentloaded" event fired
+"load" event fired
+============================================================
