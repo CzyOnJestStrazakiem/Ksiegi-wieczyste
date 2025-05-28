@@ -2775,3 +2775,16 @@ KS1S 00000002/6 - ERROR: Timeout 30000ms exceeded.
 =========================== logs ===========================
 "domcontentloaded" event fired
 ============================================================
+KS1S 00000001/9 - ERROR: Page.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("button#przyciskWydrukZupelny")
+
+KS1S 00000002/6 - ERROR: Timeout 30000ms exceeded.
+=========================== logs ===========================
+"domcontentloaded" event fired
+"load" event fired
+============================================================
+KS1S 00000003/3 - ERROR: Timeout 30000ms exceeded.
+=========================== logs ===========================
+"domcontentloaded" event fired
+============================================================
