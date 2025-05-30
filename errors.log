@@ -2817,3 +2817,22 @@ KS1S 00000006/4 - ERROR: Timeout 30000ms exceeded.
 =========================== logs ===========================
 "domcontentloaded" event fired
 ============================================================
+KS1S 00000001/9 - ERROR: Timeout 30000ms exceeded.
+=========================== logs ===========================
+"domcontentloaded" event fired
+"load" event fired
+============================================================
+KS1S 00000002/6 - ERROR: Timeout 30000ms exceeded.
+=========================== logs ===========================
+"domcontentloaded" event fired
+"load" event fired
+============================================================
+KS1S 00000003/3 - ERROR: Timeout 30000ms exceeded.
+=========================== logs ===========================
+"domcontentloaded" event fired
+"load" event fired
+============================================================
+KS1S 00000004/0 - ERROR: Timeout 30000ms exceeded.
+=========================== logs ===========================
+"domcontentloaded" event fired
+============================================================
