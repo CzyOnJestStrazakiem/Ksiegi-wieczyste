@@ -3052,3 +3052,23 @@ KS1S 00000012/9 - ERROR: Timeout 30000ms exceeded.
 "domcontentloaded" event fired
 "load" event fired
 ============================================================
+KS1S 00000001/9 - ERROR: Timeout 30000ms exceeded.
+=========================== logs ===========================
+"domcontentloaded" event fired
+"load" event fired
+============================================================
+KS1S 00000002/6 - ERROR: Page.fill: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("input#kodWydzialuInput")
+    - waiting for" https://przegladarka-ekw.ms.gov.pl/eukw_prz/KsiegiWieczyste/wyszukiwanieKW" navigation to finish...
+
+KS1S 00000008/8 - ERROR: Page.fill: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("input#kodWydzialuInput")
+    - waiting for" https://przegladarka-ekw.ms.gov.pl/eukw_prz/KsiegiWieczyste/wyszukiwanieKW" navigation to finish...
+
+KS1S 00000009/5 - ERROR: Timeout 30000ms exceeded.
+=========================== logs ===========================
+"domcontentloaded" event fired
+"load" event fired
+============================================================
